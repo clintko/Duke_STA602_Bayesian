@@ -3,7 +3,6 @@ title: 'STA 360/602: Assignment 1, Spring 2019'
 author: "Kuei-Yueh (Clint) Ko"
 date: "Due Tuesday, 15 January 2019, 10 AM, Sakai"
 output:
-  html_document: default
   pdf_document: default
 ---
 
@@ -23,11 +22,6 @@ code \url{https://google.github.io/styleguide/Rguide.xml}. No late homework's wi
 
 0. Open a new R Markdown file; set the output to HTML mode and "Knit". This should produce a web page with the knitting procedure executing your code blocks. You can edit this new file to produce your homework submission.
 
-```{r, warning=FALSE, message=FALSE}
-library(tidyverse)
-```
-
-
 ***Working with data***
 
 1.  (22 points total, equally weighted) The data set **rnf6080.dat** records hourly rainfall at a certain location in Canada, every day from 1960 to 1980.
@@ -35,9 +29,7 @@ library(tidyverse)
 a. Load the data set into R and make it a data frame called \texttt{rain.df}.  What command did you use?
 
 ```{r, warning=FALSE, message=FALSE}
-dat_dir = "./data"
-rain.df = read_table(file.path(dat_dir, "rnf6080.dat"), col_names = FALSE)
-head(rain.df)
+rain.df <- read.table("rnf6080.dat")
 ```
 
 b. How many rows and columns does \texttt{rain.df} have?  How do you know?  (If there are not 5070 rows and 27 columns, you did something wrong in the first part of the problem.)
@@ -73,25 +65,32 @@ names(rain.df) <- c("year","month","day",seq(0,23))
 ```
 
 ```{r}
-names(rain.df) <- c("year","month","day",seq(0,23))
+names(rain.df) <- c("year","month","day", seq(0,23))
 colnames(rain.df)
 ```
 
 g.  Create a new column called \texttt{daily}, which is the sum of the 24 hourly columns.
 
 ```{r}
-rain.df2 = rain.df
-rain.df2["dialy"] = apply(rain.df[, -c(1:3)], 1, sum)
+### calculate row sum of the 24 
+rain.df2 <- rain.df
+rain.df2["dialy"] <- apply(rain.df[, -c(1:3)], 1, sum)
 colnames(rain.df2)
 ```
 
 h. Give the command you would use to create a histogram of the daily rainfall amounts.  Please make sure to attach your figures in your .pdf report. 
 
 ```{r}
-x = rain.df2$dialy
+rain.df2 <- rain.df
+rain.df2["dialy"] <- apply(rain.df[, -c(1:3)], 1, sum)
+range(rain.df2$"dialy")
+```
+
+```{r}
+x <- rain.df2$dialy
 hist(x, 
      col = "grey50", 
-     breaks = seq(from = -6400, to = 5500, by = 100))
+     breaks = seq(from = -24000, to = 900, by = 100))
 ```
 
 i. Explain why that histogram above cannot possibly be right.
@@ -102,20 +101,21 @@ j. Give the command you would use to fix the data frame.
 
 First observe what are the values of negative number
 ```{r}
-tmp = do.call(c, rain.df2)
-idx = which(tmp < 0)
+tmp <- do.call(c, rain.df2)
+idx <- which(tmp < 0)
 unique(tmp[idx])
 ```
 
 assign zero to all negative values
 ```{r}
 ### assign negative values into zero 
-rain.df2 = rain.df
-idx = rain.df < 0
-rain.df2[idx] = 0
+rain.df2 <- rain.df
+idx <- (rain.df < 0)
+rain.df2[idx] <- 0
 
 ### calculate daily rainfall
-rain.df2["daily"] = apply(rain.df2[, -c(1:3)], 1, sum)
+rain.df2["daily"] <- apply(rain.df2[, -c(1:3)], 1, sum)
+range(rain.df2["daily"])
 ```
 
 k. Create a corrected histogram and again include it as part of your submitted report. Explain why it is
@@ -124,10 +124,10 @@ more reasonable than the previous histogram.
 The figure below is more reasonable because now all the amounts of daily rainfall are positive.
 ```{r}
 ### replot the histogram of daily rainfall
-x = rain.df2$daily
+x <- rain.df2$daily
 hist(x, 
      col = "grey50", 
-     breaks = seq(from = 0, to = 8000, by = 100))
+     breaks = seq(from = 0, to = 900, by = 50))
 ```
 
 ***Data types***
@@ -168,8 +168,8 @@ a.) What is the point of reproducible code?
 
 b.) Given an example of why making your code reproducible is important for you to know in this class and moving forward. 
 
-**For example, if the code I wrote could not be executed by others, other researchers would not be able to recreate my results and check if my report is correct**
+**For example, executable code is one key factor for code reproducibility. If the code I wrote could not be executed by others, other researchers would not be able to recreate my results and check if my report is correct**
 
 c.) On a scale of 1 (easy) -- 10 (hard), how hard was this assignment. If this assignment was hard ($>5$), please state in one sentence what you struggled with. 
 
-**I think the this assignment is easy (1) since I already had the background in R programming. However, it is always great to review the important concept of the language.**
+**I think the this assignment is easy (1) since I already had the background in R programming. However, it is always great to review important concepts of the language.**
