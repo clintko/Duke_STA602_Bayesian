@@ -74,7 +74,7 @@ g.  Create a new column called \texttt{daily}, which is the sum of the 24 hourly
 ```{r}
 ### calculate row sum of the 24 
 rain.df2 <- rain.df
-rain.df2["dialy"] <- apply(rain.df[, -c(1:3)], 1, sum)
+rain.df2["daily"] <- apply(rain.df[, -c(1:3)], 1, sum)
 colnames(rain.df2)
 ```
 
@@ -82,12 +82,12 @@ h. Give the command you would use to create a histogram of the daily rainfall am
 
 ```{r}
 rain.df2 <- rain.df
-rain.df2["dialy"] <- apply(rain.df[, -c(1:3)], 1, sum)
-range(rain.df2$"dialy")
+rain.df2["daily"] <- apply(rain.df[, -c(1:3)], 1, sum)
+range(rain.df2$"daily")
 ```
 
 ```{r}
-x <- rain.df2$dialy
+x <- rain.df2$daily
 hist(x, 
      col = "grey50", 
      breaks = seq(from = -24000, to = 900, by = 100))
