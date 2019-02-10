@@ -1,0 +1,131 @@
+---
+title: "Lec 01 Intro to Bayes"
+output: html_notebook
+---
+
+
+```{r}
+# Prior
+a = 12 / 8
+b = 0.04
+
+# Our data (likelihood)
+n = 10
+x = 6
+
+# show the prior, likelihood, and posteriors with
+# THETA as the sequence that we plot on teh x-axis.
+# (c, d) in Beta(c, d) refers to shape parameter
+th = seq(0, 1, length = 500)
+like  = dbeta(th, x+1, n-x+1)
+prior = dbeta(th, a, b)
+post  = dbeta(th, x + a, n-x+b)
+```
+
+
+
+```{r}
+plot( th, prior, type="l", lty = 2, lwd = 2, col = "red", ylim = c(0, 3.5), 
+      main = "Prior (Red); Likelihood (Green); Posterior (Blue)",
+      xlab = expression(theta), ylab = "Density")
+lines(th, like,            lty = 3, lwd = 2, col = "green")
+lines(th, post,            lty = 1, lwd = 2, col = "blue")
+
+legend(0, 2.0, 
+       legend=c("Prior", "Likelihood", "Posterior"),
+       col = c("red", "green", "blue"), 
+       lty = c(2, 3, 1), 
+       cex = 0.8)
+```
+
+
+Question: what if we increase n and x when data is fixed (prop. = 6/10)
+```{r}
+a = 12 / 8; b = 0.04
+th = seq(0, 1, length.out = 1000)
+prior = dbeta(th, a,   b)
+
+
+plot( th, prior, type="l", lty = 1, lwd = 2, col = "red", ylim = c(0, 20), 
+      xlab = expression(theta), ylab = "Density")
+
+
+col1 = c("dodgerblue1", "dodgerblue3", "dodgerblue4")
+col2 = c("chartreuse1", "chartreuse3", "chartreuse4")
+ns   = c(10, 100, 500)
+for (idx in 1:length(ns)){
+    n = ns[idx]
+    x = n * 0.6
+    
+    like  = dbeta(th, x+1, n-x+1)
+    post  = dbeta(th, a+x, b+n-x)
+    
+    lines(th, post, lty = 1, lwd = 2, col = col1[idx])
+    lines(th, like, lty = 1, lwd = 3, col = col2[idx])
+}
+
+```
+
+
+
+
+```{r}
+# load the BB package
+library(BB)
+
+# using percentiles
+myfn <- function(shape){
+    test <- pbeta(q = c(0.3, 0.5), 
+                  shape1 = shape[1],
+                  shape2 = shape[2])
+    return(test - c(0.5, 0.9))
+} # end func
+
+estimated = BBsolve(c(1, 1), myfn)
+print(estimated)
+```
+
+
+```{r}
+# prior
+a = estimated$par[1]
+b = estimated$par[2]
+
+# data
+n = 27
+x = 11
+
+# prior, likelihood, post
+th = seq(0, 1, length = 500)
+prior = dbeta(th, a, b)
+like  = dbeta(th, x+1, n-x+1)
+post  = dbeta(th, x+a, n-x+b)
+```
+
+
+```{r}
+plot( th, post, type = "l", lty = 2, lwd = 3, col = "blue", ylab = "Density", xlab = expression(theta))
+lines(th, like,             lty = 1, lwd = 3, col = "green")
+lines(th, prior,            lty = 3, lwd = 3, col = "red")
+
+legend(0.8, 2.0, 
+       legend=c("Prior", "Likelihood", "Posterior"),
+       col = c("red", "green", "blue"), 
+       lty = c(2, 3, 1), 
+       cex = 0.8)
+```
+
+
+Note
+
+```{r}
+th    = seq(0, 1, length.out = 100)
+x = dbeta(th, shape1 = sum_x + 1, shape2 = n - sum_x + 1)
+y = dbinom(sum_x, size = n, prob = th)
+```
+
+```{r}
+plot(th, x, col = "red") 
+points(th, y, col = "blue")
+```
+

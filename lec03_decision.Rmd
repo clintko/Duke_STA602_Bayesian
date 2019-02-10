@@ -1,0 +1,70 @@
+---
+title: "Lec 03"
+output: html_notebook
+---
+
+```{r}
+# set seed
+set.seed(123)
+
+# data
+sum_x = 1
+n     = 30
+
+# prior parameters
+a = 0.05; b = 1
+# posterior parameters
+an = a + sum_x
+bn = b + n - sum_x
+
+# generate distributions
+th    = seq(0, 1, length.out = 100)
+prior = dbeta(th, shape1 = a        , shape2 = b)
+like  = dbeta(th, shape1 = sum_x + 1, shape2 = n - sum_x + 1)
+post  = dbeta(th, shape1 = an       , shape2 = bn)
+```
+
+
+# Loss function & Posterior risk
+```{r}
+### compute the loss given theta and c
+### allow cost to be vectors
+loss_fun = function(theta, cost, weight = 10){
+    ### absolute loss
+    d = abs(theta - cost)
+    
+    ### the abs loss is weighted different 
+    ### for different condition
+    res = ifelse(cost < theta, weight * d, d)
+    return(res)
+} # end func
+
+posterior_risk = function(cost, s = 30000, seed = 123) {
+    ### generate random variable
+    set.seed(seed)
+    theta = rbeta(s, an, bn)
+    
+    ### simulate loss
+    loss  = apply(as.matrix(theta), 1, loss_fun, cost)
+    #loss  = sapply(theta, loss_fun, cost)
+    
+    ### expected value
+    risk  = mean(loss)
+    return(risk)
+} # end func
+
+#posterior_risk(1:2, s = 10)
+```
+
+
+```{r}
+cost = seq(0, 0.5, by = 0.01)
+post_risk = apply(as.matrix(cost), 1, posterior_risk)
+head(post_risk)
+```
+
+
+```{r}
+plot(cost, post_risk, type = "l", col = "blue", lwd = 3, ylab = "p(c, x)")
+```
+
