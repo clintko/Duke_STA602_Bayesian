@@ -1,14 +1,8 @@
 ---
-title: 'Lab 4: Do a teacher’s expectations influence student achievement?'
-author: "Lei Qian and Rebecca C. Steorts"
-date: "February 8, 2017"
-output:
-  html_document:
-    df_print: paged
-  pdf_document:
-    dev: png
+title: "R Notebook"
+output: html_notebook
 ---
-     
+
 Let's first load packages that we'll need in this assignment and also load the data. 
 ```{r, results = "hide", echo = FALSE, message = FALSE}
 ## don't use data in package, use data on lab assignment #
@@ -139,7 +133,7 @@ xtable(rbind(prior = prior,
 ```{r}
 # sampling from two posteriors 
 
-sim = 1e+2
+sim = 1e+4
 # initialize vectors to store samples
 mus = NULL
 lambdas = NULL
@@ -166,27 +160,3 @@ ggplot(data = simDF, aes(x = mu, y = lambda, colour = Treatment, shape = Treatme
 ```
 
 The simulated scatterplot does look similar to Figure one in that the controls groups is more concentrated with a smaller average change in IQ Score and a smaller variance while the spurters group has a larger spread and a higher average change in IQ score. 
-
-
-### Task 5
-```{r}
-# sampling from two posteriors 
-
-sim = 1e+4
-# initialize vectors to store samples
-lambda = rgamma(sim, shape = prior$a, rate = prior$b)
-mu = sapply(sqrt(1/(prior$c*lambda)),rnorm, n = 1, mean = prior$m)
-
-simDF = data.frame(lambda = lambda,
-                   mu = mu)
-simDF$lambda = simDF$lambda^{-0.5}
-
-ggplot(data = simDF, aes(x = mu, y = lambda)) +
-  geom_point(alpha = 0.2) + ylim(c(0, 50)) + xlim(c(-50, 50)) +
-  labs(x = expression(paste(mu, " (Mean Change in IQ Score)")),
-       y = expression(paste(lambda^{-1/2}, " (Std. Dev. of Change)")))  + 
-  ggtitle("Posterior Samples")+ 
-  theme(plot.title = element_text(hjust = 0.5))
-```
-
-

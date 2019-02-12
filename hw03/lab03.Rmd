@@ -1,0 +1,177 @@
+---
+title: "STA602 Lab 03"
+date: "Lab 03 session: 190123"
+output: html_notebook
+---
+
+## Task 01
+
+**We know $p(\theta|x)$ as an updated Beta, so we can numerically compute this integral for each $c$.  Reproduce Figure 1 from lecture, illustrating $\rho(c,x)$ for our example. Also, work through where the minimum occurs numerically (
+$c\approx 0.08$).**
+
+
+genterate prior, likelihood, posterior
+```{r}
+# data observed
+sum_x = 1
+n     = 30
+
+# prior parameters
+a = 0.05; b = 1
+# posterior parameters
+an = a + sum_x
+bn = b + n - sum_x
+
+# generate distributions
+set.seed(123) # set seed
+th    = seq(0, 1, length.out = 100)
+prior = dbeta(th, shape1 = a        , shape2 = b)
+like  = dbeta(th, shape1 = sum_x + 1, shape2 = n - sum_x + 1)
+post  = dbeta(th, shape1 = an       , shape2 = bn)
+```
+
+Loss function & Posterior risk
+```{r}
+### compute the loss given theta and c
+### allow cost to be vectors
+loss_fun = function(theta, cost, weight = 10){
+    ### absolute loss
+    d = abs(theta - cost)
+    
+    ### the abs loss is weighted different 
+    ### for different condition
+    res = ifelse(cost < theta, weight * d, d)
+    return(res)
+} # end func
+
+posterior_risk = function(cost, shape, s = 30000, seed = 123) {
+    ### generate random variable
+    set.seed(seed)
+    theta = rbeta(s, shape1 = shape[1], shape2 = shape[2])
+    
+    ### simulate loss
+    loss  = apply(as.matrix(theta), 1, loss_fun, cost)
+    #loss  = sapply(theta, loss_fun, cost)
+    
+    ### expected value
+    risk  = mean(loss)
+    return(risk)
+} # end func
+
+cost = seq(0, 0.5, by = 0.01)
+post_risk = apply(as.matrix(cost), 1, posterior_risk, param)
+head(post_risk)
+```
+
+```{r}
+idx = which.min(post_risk)
+post_risk_min = post_risk[idx]
+cost_min = cost[idx]
+
+print(post_risk_min)
+print(cost_min)
+```
+
+
+```{r}
+plot(cost, post_risk, type = "l", col = "blue", lwd = 3, ylab = "p(c, x)")
+```
+
+# Task 02
+
+# Task 03
+
+```{r}
+# Data
+sum_x = 0:30
+n     = 30
+
+# prior parameters
+a = 0.05; b = 1
+
+# Posterior parameters
+an = a + sum_x
+bn = b + n - sum_x
+cbind(an, bn)
+```
+
+```{r}
+cost = seq(0, 1.5, by = 0.01)
+cost_min = c()
+
+for (idx in 1:length(sum_x)){
+    shape = c(an[idx], bn[idx])
+    post_risk = apply(as.matrix(cost), 1, posterior_risk, shape)
+    idx = which.min(post_risk)
+    cost_min = c(cost_min, cost[idx])
+}
+```
+
+
+```{r}
+plot( sum_x, cost_min, type = "l",    col = "blue", ylim = c(0, 1))
+lines(sum_x, cost_min,                col = "blue")
+lines(sum_x, sum_x / n,               col = "chartreuse4")
+lines(sum_x, rep(0.1, length(sum_x)), col = "red")
+
+points(sum_x, cost_min,                pch = 20, col = "blue")
+points(sum_x, sum_x / n,               pch = 20, col = "chartreuse4")
+points(sum_x, rep(0.1, length(sum_x)), pch = 20, col = "red")
+```
+
+
+
+# Task 04
+
+
+
+```{r}
+frequent_risk = function(cost, sum_x, n, s = 1000, seed = 123) {
+    ### generate random variable
+    set.seed(seed)
+    theta = rbeta(s, shape1 = sum_x + 1, shape2 = n - sum_x + 1)
+    
+    ### simulate loss
+    loss  = apply(as.matrix(theta), 1, loss_fun, cost)
+    
+    ### expected value
+    risk  = mean(loss)
+    return(risk)
+} # end func
+```
+
+```{r}
+# Data
+sum_x = 0:30
+n     = 30
+
+# init
+cost = seq(0, 1.5, by = 0.01)
+cost_min_freq = c()
+
+# cost min of freq risk
+for (idx in 1:length(sum_x)){
+    freq_risk = apply(as.matrix(cost), 1, frequent_risk, sum_x[idx], n)
+    idx = which.min(freq_risk)
+    cost_min_freq = c(cost_min_freq, cost[idx])
+}
+```
+
+```{r}
+print(cost_min_freq)
+```
+
+
+```{r}
+plot( sum_x, cost_min, type = "l",    col = "blue", ylim = c(0, 1))
+lines(sum_x, cost_min,                col = "blue")
+lines(sum_x, sum_x / n,               col = "chartreuse4")
+lines(sum_x, rep(0.1, length(sum_x)), col = "red")
+lines(sum_x, cost_min_freq,           col = "orange")
+
+points(sum_x, cost_min,                pch = 20, col = "blue")
+points(sum_x, sum_x / n,               pch = 20, col = "chartreuse4")
+points(sum_x, rep(0.1, length(sum_x)), pch = 20, col = "red")
+points(sum_x, cost_min_freq,           pch = 20, col = "orange")
+```
+

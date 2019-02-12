@@ -1,0 +1,400 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# *Lab component* (90 points total) 
+Please refer to module 2 and lab 3 and complete tasks 3---5. 
+
+Suppose public health officials in a small city need to decide how much resources to devote toward prevention and treatment of a certain disease, but the fraction $\theta$ of infected individuals in the city is unknown.
+
+Suppose they allocate enough resources to accomodate a fraction $c$ of the population. If $c$ is too large, there will be wasted resources, while if it is too small, preventable cases may occur and some individuals may go untreated. After deliberation, they tentatively adopt the following loss function:
+
+$$
+\ell(\theta, c) = \begin{cases}
+              | \theta - c |, & \text{if } c \geq \theta \\
+    10 \times | \theta - c |, & \text{if } c < \theta    \\
+\end{cases}
+$$
+
+By considering data from other similar cities, they determine a prior $p(\theta)$. For simplicity, suppose $\theta\sim\text{Beta}(a,b)$ (i.e., $p(\theta) = \text{Beta}(\theta|a,b)$), with $a=0.05$ and $b=1$. They conduct a survey assessing the disease status of $n=30$ individuals, $x_1,\ldots,x_n$. This is modeled as $X_1,\ldots,X_n \stackrel{iid}{\sim} \text{Bernoulli}(\theta)$, which is reasonable if the individuals are uniformly sampled and the population is large. Suppose all but one are disease-free, i.e., $\sum_{i=1}^n x_i = 1$.
+
+-----
+
+\color{black}
+
+## Task 1: Find minimum cost ($c$) given $a$, $b$, $n$, and $\sum x_i$
+
+We know $p(\theta|x)$ as an updated Beta, so we can numerically compute this integral for each $c$.  Reproduce Figure 1 from lecture, illustrating $\rho(c,x)$ for our example. Also, work through where the minimum occurs numerically ($c\approx 0.08$).
+
+\color{MyColor}
+
+Consider the loss function.
+$$
+\ell(\theta, c) = \begin{cases}
+              | \theta - c |, & \text{if } c \geq \theta \\
+    10 \times | \theta - c |, & \text{if } c < \theta    \\
+\end{cases}
+$$
+
+```{r,cache=TRUE}
+# compute the loss given theta and c 
+loss_fun = function(theta, c){
+    if (c < theta){
+        return(10 * abs(theta - c))
+    } else{
+        return(abs(theta - c))
+    } # end ifelse
+} # end func
+```
+
+We now write a function **posterior_risk** which is a function of cost (c), parameters a_prior and b_prior for the prior distribution of $\theta$, the summation of $x_i$ sum_x, the number of observations n, and also the number of random draws s. 
+```{r}
+# compute the posterior risk given c (cost) 
+# s is the number of random draws 
+posterior_risk = function(cost, shape, sum_x, n, s = 30000){
+    ### get posterior
+    a_prior = shape[1]; b_prior = shape[2]
+    a_post  = a_prior + sum_x
+    b_post  = b_prior + n - sum_x
+    
+    ### randow draws from beta distribution 
+    theta = rbeta(s, a_post, b_post)
+    loss  = apply(as.matrix(theta), 1, loss_fun, cost)
+    
+    ### average values from the loss function
+    risk = mean(loss)
+} # end fun 
+```
+
+create function to search for the minimum cost
+$$\text{cost}^* = \underset{c}{\operatorname{argmin}} \rho(c,x)$$
+```{r}
+cost_min_risk = function(cost, risk){
+    ### check dimension
+    stopifnot(length(cost) == length(risk))
+    ### return cost created minimum risk
+    idx = which.min(risk)
+    res = c(cost[idx], risk[idx])
+    return(res)
+} # end fun
+```
+
+calculate posterior risk and reproduce figure 1 in lecture 2
+```{r, fig.height=4, fig.width=6}
+### data
+sum_x = 1
+n = 30
+
+### prior parameters
+a = 0.05; b = 1
+
+### generate posterior risk
+cost = seq(0, 0.5, by = 0.01)
+s    = 2000
+set.seed(123)
+post_risk = apply(as.matrix(cost), 1, posterior_risk, c(a, b), sum_x, n, s)
+
+### find the minimum cost
+tmp = cost_min_risk(cost, post_risk)
+cost_opt = tmp[1]; risk_min = tmp[2]
+
+### reproduce figure 1
+plot(  cost, post_risk,    col = "blue", type = "l", xlab = "Cost", ylab = "Posterior Risk (cost, X)")
+points(cost_opt, risk_min, col = "red",  pch = 19)
+abline(v = cost_opt, col = "red", lty = 2)
+abline(h = risk_min, col = "red", lty = 2)
+text(0.4, 0.2,  paste("optimal cost =", cost_opt, "\n", 
+                      "minimum risk =", round(risk_min, 3)))
+```
+
+-----
+
+\color{black}
+
+## Task 2: Sensitivity Analysis
+**Now perform a sensitivity analysis for the prior assumption (Beta(a,b)). What do you find?**
+
+\color{MyColor}
+
+```{r}
+### initialization
+cost = seq(0, 0.5, by = 0.01)
+s    = 2000
+
+### set prior
+as = c(0.05, 1, 0.05); bs = c(1, 1, 10)
+shape_prior = cbind(as, bs)
+
+### for each pair of a and b, compute the posterior risks
+post_risk = apply(shape_prior, 1, function(shape){
+    apply(as.matrix(cost), 1, posterior_risk, shape, sum_x, n, s)
+}) # end apply
+post_risk = t(post_risk)
+
+### plot the results
+plot(cost, post_risk[1,], type = 'l', col='blue', lty = 1, yaxt = "n", ylab = "p(c, x)")
+par(new = T)
+plot(cost, post_risk[2,], type = 'l', col='red', lty = 2, yaxt = "n", ylab = "")
+par(new = T)
+plot(cost, post_risk[3,], type = 'l', lty = 3, yaxt = "n", ylab = "")
+
+legend("bottomright", lty = c(1,2,3), col = c("blue", "red", "black"), 
+       legend = c("a = 0.05 b = 1", "a = 1 b = 1", "a = 0.05 b = 5"))
+```
+
+-----
+
+\color{black}
+
+## Task 3
+**Consider the Bayes procedure ($c\approx 0.08$), $c=\bar{x}, c=0.1.$ Reproduce Figure 2. Explain your findings. **
+
+\color{MyColor}
+
+
+```{r}
+### data
+sum_x = seq(0, 30, by = 1)
+n = 30
+
+### prior parameters
+a = 0.05; b = 1
+
+### generate posterior risk
+cost = seq(0, 1.0, by = 0.01)
+s    = 2000
+set.seed(123)
+cost_opts = sapply(sum_x, function(x){
+    ### generate posterior risk
+    post_risk = apply(as.matrix(cost), 1, posterior_risk, c(a, b), x, n, s)
+    
+    ### get optimal cost
+    tmp = cost_min_risk(cost, post_risk)
+    cost_opt = tmp[1]; risk_min = tmp[2]
+    return(cost_opt)
+}) # end sapply
+```
+
+```{r}
+length(cost_opts)
+```
+
+
+reproducing figure 2 in the lecture 02
+```{r}
+plot( sum_x, cost_opts, type = "l",    col = "blue", ylim = c(0, 1))
+lines(sum_x, cost_opts,                col = "blue")
+lines(sum_x, sum_x / n,               col = "chartreuse4")
+lines(sum_x, rep(0.1, length(sum_x)), col = "red")
+
+points(sum_x, cost_opts,                pch = 20, col = "blue")
+points(sum_x, sum_x / n,               pch = 20, col = "chartreuse4")
+points(sum_x, rep(0.1, length(sum_x)), pch = 20, col = "red")
+
+legend("topleft", 
+       lty = c(1,1,1), 
+       col = c("blue", "chartreuse4", "red"), 
+       cex = 0.8, 
+       legend = c("Bayes Procedure (a = 0.05, b = 1)", "Sample Mean", "constant"))
+```
+
+
+```{r}
+### data
+sum_x = seq(0, 30, by = 1)
+n = 30
+
+### prior parameters:
+as = c(0.05, 1, 2); bs = c(0.05, 1, 2)
+shape_prior = expand.grid(as, bs)
+
+### generate posterior risk
+cost = seq(0, 1.0, by = 0.01)
+s    = 100
+set.seed(123)
+
+mat_cost_opt = apply(shape_prior, 1, function(shape){
+    cost_opt = sapply(sum_x, function(x){
+        ### generate posterior risk
+        post_risk = apply(as.matrix(cost), 1, posterior_risk, shape, x, n, s)
+    
+        ### get optimal cost
+        tmp = cost_min_risk(cost, post_risk)
+        cost_opt = tmp[1]; risk_min = tmp[2]
+        return(cost_opt)
+    }) # end sapply
+    return(cost_opt)
+}) # end apply
+```
+
+```{r}
+shape_prior
+```
+
+
+```{r}
+mat_cost_opt = t(mat_cost_opt)
+```
+
+```{r}
+dim(mat_cost_opt)
+```
+
+
+```{r}
+library(RColorBrewer)
+```
+
+```{r}
+cols = brewer.pal(9, "Set1")
+```
+
+```{r}
+tmp = apply(shape_prior, 1, function(shape){paste("Bayes:", "a =", shape[1], ";", "b =", shape[2])})
+```
+
+
+```{r}
+plot( sum_x, sum_x / n, lwd = 2, lty = 2, type = "l", col = "black", ylim = c(0, 1), ylab = "Optimal Cost")
+lines(sum_x, rep(0.1, length(sum_x)), lwd = 2, lty = 2, col = "grey50")
+
+for (idx in 1:9){
+    lines(sum_x, mat_cost_opt[idx,], col = cols[idx])
+}
+
+tmp = apply(shape_prior, 1, function(shape){paste("Bayes:", "a =", shape[1], ";", "b =", shape[2])})
+legend("topleft", 
+       lty = c(2, 2, rep(1, length(cols))), 
+       col = c("black", "grey50", cols), 
+       cex = 0.8, 
+       legend = c("Sample Mean", "constant", tmp))
+```
+
+
+**The Bayes procedure always picks cost to be a little bigger than $\bar{x}$.**
+
+
+-----
+
+\color{black}  
+
+## Task 4
+
+```{r}
+frequentist_risk = function(theta, loss_fun, find_optimal_cost, ...){
+    ### generate different data x
+    set.seed(123)
+    sum_xs = rbinom(100, 30, theta)
+    
+    ### for different data, calculate optimal cost
+    cost_opt = apply(as.matrix(sum_xs), 1, find_optimal_cost, ...)
+  
+    ### 
+    loss = apply(as.matrix(cost_opt), 1, loss_fun, theta = theta)
+    freq_risk = mean(loss)
+    return(freq_risk)
+}
+```
+
+
+```{r}
+proc_bayes = function(sum_x, shape_prior, n, s = 100){
+   ### generate posterior risk
+    post_risk = apply(as.matrix(cost), 1, posterior_risk, shape_prior, sum_x, n, s)
+    
+    ### get optimal cost
+    tmp = cost_min_risk(cost, post_risk)
+    cost_opt = tmp[1]; risk_min = tmp[2]
+    return(cost_opt)
+} # end fun
+```
+
+```{r}
+a = 0.05; b = 1
+
+thetas = seq(0, 1, by=0.1)
+risk = sapply(thetas, function(theta){
+    frequentist_risk(theta, loss_fun, proc_bayes, n = 30, shape_prior = c(a, b))
+}) # end sapply
+```
+
+```{r}
+proc_mean = function(sum_x, n){
+    return(sum_x / n)
+}
+
+risk2 = sapply(thetas, function(theta){
+    frequentist_risk(theta, loss_fun, proc_mean, n = 30)
+})
+```
+
+
+```{r}
+proc_const = function(sum_x, n, const = 0.5){
+    return(const)
+}
+
+risk3 = sapply(thetas, function(theta){
+    frequentist_risk(theta, loss_fun, proc_const, n = 30, const = 0.1)
+})
+```
+
+```{r}
+plot(thetas, risk, type = "l", ylim = c(0,1), col = "grey50")
+lines(thetas, R[1, ],  col = "green")
+lines(thetas, risk2,   col = "grey50")
+lines(thetas, R[2, ],  col = "blue")
+lines(thetas, risk3,   col = "grey50")
+lines(thetas, R[3, ],  col = "red")
+
+```
+
+
+For all $\theta$, the Bayes procedure has the lower frequentist risk than the sample mean. 
+```{r, cache=TRUE}
+
+thetas = seq(0, 1, by=0.1)
+
+# frequentist risk for the 3 estimators given a theta
+find_optimal_C = function(sum_x, a_prior, b_prior, n, s = 500){
+  cost = seq(0, 1, by = 0.01)
+  post_risk =  apply(as.matrix(cost), 1, posterior_risk, c(a_prior, b_prior), sum_x, n, s)
+  cost[which.min(post_risk)]
+}
+
+frequentist_risk = function(theta){
+    set.seed(123)
+  sum_xs = rbinom(100, 30, theta)
+  Bayes_optimal = apply(as.matrix(sum_xs), 1, find_optimal_C, a, b, n, s = 100)
+  mean_c = sum_xs / 30
+  
+  loss1 = apply(as.matrix(Bayes_optimal), 1, loss_fun, theta = theta)
+  loss2 = apply(as.matrix(mean_c), 1, loss_fun, theta = theta )
+  risk1 = mean(loss1)
+  risk2 = mean(loss2)
+  risk3 = loss_fun(theta, 0.1)
+  return(c(risk1, risk2, risk3))
+}
+
+# given a sequance a theta, compute frequentist risk for each theta
+R = apply(as.matrix(thetas), 1, frequentist_risk)
+
+# plot
+plot(thetas, R[1,], col='blue', type = "l", 
+     ylab = "frequentist risk", xlab = 'theta',ylim = c(0,1))
+par(new = T)
+plot(thetas, R[2,], type = 'l', col='green', 
+     ylab = "", xlab = '', ylim = c(0,1))
+par(new = T)
+plot(thetas, R[3,], type = 'l',col = 'red',
+     ylab = "", xlab = '', ylim = c(0,1))
+legend("topright", lty = c(1,1,1), col = c("blue", "green", "red"),
+       legend = c("Bayes", "Sample mean", "constant"))
+```
+
+
+\color{black}
+
+## Task 5
+
